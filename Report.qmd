@@ -1,3 +1,257 @@
 ---
-title: "Report"
+title: "Download Report"
+author: "Emma Longo"
+format: html
+embed-resources: true
+editor: visual
 ---
+
+# Prospective Randomized Trial on Chronic Disease Patient Education Videos at an Urban Safety Net Hospital
+
+## Introduction
+
+[Background]{.underline}
+
+In the US, 60% of adults have at least one chronic condition (such as heart disease, hypertension, and diabetes) and 42% have more than one. Chronic disease is the leading cause of death and disability and significantly contributes to annual healthcare spending (Buttorff). Studies have shown that patient education interventions can improve outcomes in patients with chronic heart failure (CHF) (Krumholz). Additional studies have demonstrated that educational videos are effective at improving patient-reported confidence levels (Gagliano).
+
+[Question]{.underline}
+
+A prospective interventional study was conducted at LAC+USC Medical Center to evaluate the effect of a mobile educational tool delivered to hospitalized patients with CHF on patient experience, health literacy, and clinical outcomes. The primary outcome of interest is health literacy, as measured by a 12 question comprehension quiz on the pathophysiology, symptomatology, and management of CHF. Additional outcomes include satisfaction scores and hospital readmission rates. The hypothesis is that patients who complete the mobile educational experience will have higher quiz scores and satisfaction scores compared to patients who do not.
+
+## Methods
+
+[Data Collection]{.underline}
+
+Patients who were admitted to the medicine inpatient service at LAC+USC Medical Center from September 2021 to October 2022 with a complication related to CHF were screened for eligibility. After completing the informed consent paperwork, patients were randomized to the treatment group or the control group. The treatment group watched a video about CHF and then completed a comprehension quiz and a survey. The control group completed the same comprehension quiz and survey, but did not watch the video. Health confidence levels were assessed using two validated tools. Quiz scores, satisfaction scores, and education level were also collected at that time. Additional information about demographics (such as age, race/ethnicity, and housing status) and medical history (such as BMI, substance use, and comorbidities) were collected via retrospective chart review of the electronic health record (EHR).
+
+[Data Wrangling and Exploratory Data Analysis]{.underline}
+
+The following libraries were loaded into RStudio: tidyverse, dplyr, tableone, knitr, ggplot2, and kableExtra.
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+library(tidyverse)
+library(dplyr)
+library(tableone)
+library(knitr)
+library(ggplot2)
+library(kableExtra)
+```
+
+The data was downloaded from Microsoft Teams, converted into a CSV file, and read in to RStudio using read.csv().
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+chf <- read.csv("~/Desktop/Final-Project/chf_data.csv")
+```
+
+The dimensions, headers, and footers of the data were examined using dim(), head(), and tail(), respectively. There are 67 rows, corresponding to 67 patients enrolled in the study. There are 35 columns, corresponding to 35 variables collected for each patient.
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+dim(chf)
+head(chf)
+tail(chf)
+```
+
+The variable types in the data were examined using str(). In this dataset, there are integers (int), characters (chr), and numeric (num) variables. The categorical variables are encoded as integers (0 = no, 1 = yes).
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+str(chf)
+```
+
+Missing values were identified using colSums(). The maximum number of missing values per variable was 3 (4.47% of total observations). A "missing" value was created for variables with missing values.
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+chf$BMI[is.na(chf$BMI)] <- "missing"
+chf$SBP_initial[is.na(chf$SBP_initial)] <- "missing"
+chf$DBP_initial[is.na(chf$DBP_initial)] <- "missing"
+chf$Housing[is.na(chf$Housing)] <- "missing"
+chf$Drug_use[is.na(chf$Drug_use)] <- "missing"
+chf$Tobacco_use[is.na(chf$Tobacco_use)] <- "missing"
+chf$Comorbidities_medical[is.na(chf$Comorbidities_medical)] <- "missing"
+chf$Comorbidities_psych[is.na(chf$Comorbidities_psych)] <- "missing"
+chf$Health_confidence_Q2[is.na(chf$Health_confidence_Q2)] <- "missing"
+chf$Satisfaction[is.na(chf$Satisfaction)] <- "missing"
+```
+
+Next, key variables were examined. Categorical variables were examined using table(). Continuous variables were examined using summary().
+
+For the group variable, the treatment group was initially showing up as two different groups, but should have been just one. Therefore, an ifelse() function was used to fix this. There are 32 patients in the Control group and 35 patients in the Treatment group.
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+table(chf$Group)
+chf$Group <- ifelse(chf$Group == "Control", "Control", "Treatment")
+table(chf$Group)
+```
+
+For the quiz score variable, the overall mean is 69.01 with a range of 25 to 100. For reference, these numbers represent percentage of questions answered correctly on the quiz.
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+summary(chf$Quiz_score)
+```
+
+For the satisfaction variable, it was initially showing up as character. Therefore, it was changed to a number using as.integer(). The overall mean is 4.23 with a range of 1 to 5.
+
+```{r, echo=FALSE, message=FALSE, results='hide', warning=FALSE}
+summary(chf$Satisfaction)
+chf$Satisfaction <- as.integer(chf$Satisfaction)
+summary(chf$Satisfaction)
+```
+
+Finally, exploratory plots were used to examine quiz score and satisfaction score. According to the exploratory plots, the quiz score distribution was positively skewed in the control group and negatively skewed in the treatment group. The satisfaction score distribution was negatively skewed in both the control group and the treatment group.
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+chf_control <- chf %>%
+  filter(Group == "Control")
+chf_treatment <- chf %>%
+  filter(Group == "Treatment")
+
+hist(chf_control$Quiz_score, 
+     main = "Distribution of Quiz Scores in Control Group", 
+     xlab = "Quiz Scores", 
+     ylab = "Frequency")
+
+hist(chf_treatment$Quiz_score,
+     main = "Distribution of Quiz Scores in Treatment Group",
+     xlab = "Quiz Scores",
+     ylab = "Frequency")
+
+hist(chf_control$Satisfaction,
+     main = "Distribution of Satisfaction Scores in Control Group",
+     xlab = "Satisfaction Scores",
+     ylab = "Frequency")
+
+hist(chf_treatment$Satisfaction,
+     main = "Distribution of Satisfaction Scores in Treatment Group",
+     xlab = "Satisfaction Scores",
+     ylab = "Frequency")
+```
+
+## Results
+
+[Table 1: Demographics]{.underline}
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+table1_overall <- CreateTableOne(c("Age", "Race.Ethnicity", "Preferred_language",
+                                   "Education_level", "Housing", "Drug_use", "Tobacco_use", 
+                                   "Comorbidities_medical", "Comorbidities_psych"),
+                                 data = chf,
+                                 factorVars = c("Housing", "Drug_use", "Tobacco_use",
+                                                "Comorbidities_medical", 
+                                                "Comorbidities_psych"))
+table1_overall <- table1_overall %>%
+  print() %>%
+  as.data.frame()
+table1_stratified <- CreateTableOne(c("Age", "Race.Ethnicity", "Preferred_language",
+                                   "Education_level", "Housing", "Drug_use", "Tobacco_use", 
+                                   "Comorbidities_medical", "Comorbidities_psych"),
+                                   strata = "Group",
+                                   data = chf,
+                                   factorVars = c("Housing", "Drug_use", "Tobacco_use",
+                                                  "Comorbidities_medical",
+                                                  "Comorbidities_psych"))
+table1_stratified <- table1_stratified %>%
+  print() %>%
+  as.data.frame()
+table1_final <- cbind(table1_overall, table1_stratified)
+table1_final <- table1_final %>%
+  print() %>%
+  as.data.frame()
+```
+
+```{r, echo=FALSE}
+kable(table1_final, "html") %>%
+  kable_styling()
+```
+
+[Figure 1A: Race/Ethnicity Distribution in Control Group]{.underline}
+
+```{r, echo=FALSE}
+ggplot(chf_control, aes(x = Race.Ethnicity, fill = Race.Ethnicity)) +
+  geom_bar() +
+  labs(title = "Race/Ethnicity Distribution in Control Group",
+       x = "Race/Ethnicity",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+[Figure 1B: Race/Ethnicity Distribution in Treatment Group]{.underline}
+
+```{r, echo=FALSE}
+ggplot(chf_treatment, aes(x = Race.Ethnicity, fill = Race.Ethnicity)) +
+  geom_bar() +
+  labs(title = "Race/Ethnicity Distribution in Treatment Group",
+       x = "Race/Ethnicity",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+[Table 2: Quiz Scores]{.underline}
+
+```{r, echo=FALSE}
+table2 <- chf %>%
+  group_by(Group) %>%
+  summarize(mean_quiz_score = mean(Quiz_score, na.rm = TRUE),
+            min_quiz_score = min(Quiz_score, na.rm = TRUE),
+            max_quiz_score = max(Quiz_score, na.rm = TRUE)) %>%
+  rename("Mean Quiz Score" = mean_quiz_score,
+         "Minimum Quiz Score" = min_quiz_score,
+         "Maximum Quiz Score" = max_quiz_score)
+kable(table2, "html") %>%
+  kable_styling()
+```
+
+[Figure 2: Quiz Scores]{.underline}
+
+```{r, echo=FALSE}
+ggplot(chf, aes(x = as.factor(Group), y = Quiz_score)) +
+  geom_boxplot() +
+  labs(title = "Quiz Score by Group",
+       x = "Group",
+       y = "Quiz Score")
+```
+
+[Table 3: Satisfaction Scores]{.underline}
+
+```{r, echo=FALSE}
+table3 <- chf %>%
+  group_by(Group) %>%
+  summarize(mean_satisfaction = mean(Satisfaction, na.rm = TRUE),
+            min_satisfaction = min(Satisfaction, na.rm = TRUE),
+            max_satisfaction = max(Satisfaction, na.rm = TRUE)) %>%
+  rename("Mean Satisfaction Score" = mean_satisfaction,
+         "Minimum Satisfaction Score" = min_satisfaction,
+         "Maximum Satisfaction Score" = max_satisfaction)
+kable(table3, "html") %>%
+  kable_styling()
+```
+
+[Figure 3: Satisfaction Scores]{.underline}
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(chf, aes(x = as.factor(Group), y = Satisfaction)) +
+  geom_boxplot() +
+  labs(title = "Satisfaction Score by Group",
+       x = "Group",
+       y = "Satisfaction Score")
+```
+
+## Summary and Conclusion
+
+Table 1 shows that the control group and the treatment group were not statistically significantly different from each other in regards to age, race/ethnicity, preferred language, education level, housing status, tobacco use, medical comorbidities, and psychiatric comorbidities, as evidenced by p-values greater than 0.05. The only demographic characteristic that was statistically significantly different between the two groups was drug use (p=0.047). This is important to note, as it may confound the association between the intervention and the outcomes and should be adjusted for in future analyses.
+
+Figure 1A and Figure 1B show that the most frequent racial/ethnic groups in both the control group and the treatment group were Mexican and Black. It is important to note that there were more racial/ethnic groups and combinations listed in the treatment group as compared to the control group. For example, there were no patients who identified as European in the control group.
+
+Table 2 shows that the average quiz score was higher in the treatment group (78.33%) as compared to the control group (58.80%). This result is consistent with our hypothesis that patients who complete the mobile educational experience will have higher quiz scores than patients who do not. Figure 2 shows that the range of quiz scores was greater in the control group as compared to the treatment group - evidenced by longer whiskers (minimum to lower quartile and upper quartile to maximum). Again, this plot emphasizes that the average quiz score was higher in the treatment group as compared to the control group.
+
+Table 3 shows that the average satisfaction score was higher in the control group (4.38 out of 5) as compared to the treatment group (4.09 out of 5). This result is not consistent with our hypothesis that patients who complete the mobile educational experience will have higher satisfaction scores than patients who do not. Figure 3 shows that there is 1 outlier in the control group and 2 outliers in the treatment group.
+
+In conclusion, we can conclude that the mobile educational experience was associated with increasing patients' knowledge about their chronic disease (as measured by quiz scores), but not associated with improving patients' hospital experience (as measured by satisfaction scores). Future patient education interventions can draw upon these insights to improve health literacy through technology integration and mitigate underlying disparities in chronic disease management.  
+
+## References
+
+Buttorff, Christine, Teague Ruder, and Melissa Bauman, Multiple Chronic Conditions in the United States. Santa Monica, CA: RAND Corporation, 2017. https://www.rand.org/pubs/tools/TL221.html.
+
+Gagliano ME. A literature review on the efficacy of video in patient education. J Med Educ. 1988 Oct;63(10):785-92. doi: 10.1097/00001888-198810000-00006. PMID: 3050102.
+
+Krumholz HM, Amatruda J, Smith GL, et al. Randomized trial of an education and support intervention to prevent readmission of patients with heart failure. Journal of the American College of Cardiology. 2002;39:83--9. 10.1016/S0735-1097(01)01699-0.

@@ -1,11 +1,95 @@
 ---
-title: "temp"
+title: "PM 566 Final Project"
+author: "Emma Longo"
 ---
 
-This is a Quarto website.
+# Prospective Randomized Trial on Chronic Disease Patient Education Videos at an Urban Safety Net Hospital
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+## Description
 
-```{r}
-1 + 1
+A prospective interventional study was conducted at LAC+USC Medical Center to evaluate the effect of a mobile educational tool delivered to hospitalized patients with congestive heart failure (CHF) on patient experience, health literacy, and clinical outcomes. The hypothesis is that patients who complete the mobile educational experience will have higher quiz scores and satisfaction scores compared to patients who do not.
+
+Patients who were admitted to the medicine inpatient service at LAC+USC Medical Center from September 2021 to October 2022 with a complication related to CHF were screened for eligibility and randomized to the treatment group or the control group. The treatment group watched a video about CHF and then completed a comprehension quiz and a survey. The control group completed the same comprehension quiz and survey, but did not watch the video.
+
+The data was wrangled, explored, and analyzed in RStudio. Demographic characteristics (age, race/ethnicity, preferred language, etc.) were not statistically significantly different between the control group and the treatment group. Overall, the mobile educational experience was associated with increasing patients' knowledge about their chronic disease (as measured by quiz scores), but not associated with improving patients' hospital experience (as measured by satisfaction scores).
+
+## Interactive Visualizations
+
+```{r, echo=FALSE, message=FALSE, results='hide'}
+library(ggplot2)
+library(plotly)
+library(knitr)
+```
+
+```{r, echo=FALSE}
+chf <- read.csv("~/Desktop/Final-Project/chf_data.csv")
+
+chf$Group <- ifelse(chf$Group == "Control", "Control", "Treatment")
+
+chf$Satisfaction <- as.integer(chf$Satisfaction)
+
+chf_control <- chf %>%
+  filter(Group == "Control")
+chf_treatment <- chf %>%
+  filter(Group == "Treatment")
+```
+
+[Figure 1A: Race/Ethnicity Distribution in Control Group]{.underline}
+
+This interactive figure shows the distribution of racial/ethnic groups among patients who were randomized to the control group.
+
+```{r, echo=FALSE}
+figure1a <- ggplot(chf_control, aes(x = Race.Ethnicity, fill = Race.Ethnicity)) +
+  geom_bar() +
+  labs(title = "Race/Ethnicity Distribution in Control Group",
+       x = "Race/Ethnicity",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+figure1a_interactive <- ggplotly(figure1a)
+figure1a_interactive
+```
+
+[Figure 1B: Race/Ethnicity Distribution in Treatment Group]{.underline}
+
+This interactive figure shows the distribution of racial/ethnic groups among patients who were randomized to the treatment group.
+
+```{r, echo=FALSE}
+figure1b <- ggplot(chf_treatment, aes(x = Race.Ethnicity, fill = Race.Ethnicity)) +
+  geom_bar() +
+  labs(title = "Race/Ethnicity Distribution in Treatment Group",
+       x = "Race/Ethnicity",
+       y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+figure1b_interactive <- ggplotly(figure1b)
+figure1b_interactive
+```
+
+[Figure 2: Quiz Scores]{.underline}
+
+This interactive figure shows the distribution of quiz scores among patients in the control group compared to patients in the treatment group.
+
+```{r, echo=FALSE}
+figure2 <- ggplot(chf, aes(x = as.factor(Group), y = Quiz_score)) +
+  geom_boxplot() +
+  labs(title = "Quiz Score by Group",
+       x = "Group",
+       y = "Quiz Score")
+figure2_interactive <- ggplotly(figure2)
+figure2_interactive
+```
+
+[Figure 3: Satisfaction Scores]{.underline}
+
+This interactive figure shows the distribution of satisfaction scores among patients in the control group compared to patients in the treatment group.
+
+```{r, echo=FALSE, warning=FALSE}
+figure3 <- ggplot(chf, aes(x = as.factor(Group), y = Satisfaction)) +
+  geom_boxplot() +
+  labs(title = "Satisfaction Score by Group",
+       x = "Group",
+       y = "Satisfaction Score")
+figure3_interactive <- ggplotly(figure3)
+figure3_interactive
 ```
